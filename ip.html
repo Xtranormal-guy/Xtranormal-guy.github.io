@@ -4,8 +4,8 @@
     <p>Your IP Address is: <span id="ip">Loading...</span></p>
 
     <script>
-        fetch('https://api.ipify.org?format=json')
-            .then(response => response.json())
+        fetch('https://api.ipify.org')
+            .then(response => response.text())
             .then(data => {
                 document.getElementById('ip').textContent = data.ip;
             })
