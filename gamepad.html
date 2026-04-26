@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML5 Gamepad Tester</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #eee; text-align: center; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #2a2a2a; padding: 20px; border-radius: 10px; }
+        .status { margin-bottom: 20px; font-weight: bold; color: #ffcc00; }
+        .gamepad { border-top: 1px solid #444; padding-top: 20px; margin-top: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 15px; }
+        .item { padding: 10px; background: #333; border-radius: 5px; font-size: 0.9em; transition: background 0.1s; }
+        .pressed { background: #00ff88 !important; color: #000; font-weight: bold; }
+        .axis-container { margin-top: 20px; text-align: left; }
+        .axis-bar { height: 10px; background: #444; border-radius: 5px; position: relative; margin-bottom: 10px; }
+        .axis-fill { height: 100%; background: #00ff88; width: 50%; position: absolute; left: 50%; transition: width 0.05s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gamepad Tester</h1>
+        <div id="status" class="status">Waiting for gamepad... Press any button!</div>
+        <div id="gamepads-container"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('gamepads-container');
+        const statusText = document.getElementById('status');
+
+        function updateLoop() {
+            const gamepads = navigator.getGamepads();
+            container.innerHTML = '';
+            
+            let anyConnected = false;
+            for (const gp of gamepads) {
+                if (gp) {
+                    anyConnected = true;
+                    statusText.textContent = "Gamepad Connected!";
+                    const gpDiv = document.createElement('div');
+                    gpDiv.className = 'gamepad';
+                    gpDiv.innerHTML = `<h3>${gp.id}</h3><div class="grid" id="buttons-${gp.index}"></div><div class="axis-container" id="axes-${gp.index}"></div>`;
+                    container.appendChild(gpDiv);
+
+                    // Render Buttons
+                    const btnGrid = document.getElementById(`buttons-${gp.index}`);
+                    gp.buttons.forEach((btn, i) => {
+                        const btnEl = document.createElement('div');
+                        btnEl.className = `item ${btn.pressed ? 'pressed' : ''}`;
+                        btnEl.textContent = `B${i}: ${btn.value.toFixed(2)}`;
+                        btnGrid.appendChild(btnEl);
+                    });
+
+                    // Render Axes (Sticks)
+                    const axisGrid = document.getElementById(`axes-${gp.index}`);
+                    gp.axes.forEach((axis, i) => {
+                        const axisLabel = document.createElement('div');
+                        axisLabel.textContent = `Axis ${i}: ${axis.toFixed(4)}`;
+                        const bar = document.createElement('div');
+                        bar.className = 'axis-bar';
+                        const fill = document.createElement('div');
+                        fill.className = 'axis-fill';
+                        // Map axis -1 to 1 into 0% to 100% width
+                        fill.style.left = axis < 0 ? `${50 + (axis * 50)}%` : '50%';
+                        fill.style.width = `${Math.abs(axis) * 50}%`;
+                        
+                        bar.appendChild(fill);
+                        axisGrid.appendChild(axisLabel);
+                        axisGrid.appendChild(bar);
+                    });
+                }
+            }
+            if (!anyConnected) statusText.textContent = "Waiting for gamepad... Press any button!";
+            requestAnimationFrame(updateLoop);
+        }
+
+        window.addEventListener("gamepadconnected", (e) => {
+            console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+                e.gamepad.index, e.gamepad.id, e.gamepad.buttons.length, e.gamepad.axes.length);
+        });
+
+        requestAnimationFrame(updateLoop);
+    </script>
+</body>
+</html>
