@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple IPTV Player</title>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #1a1a1a; color: white; }
+        #sidebar { width: 300px; display: flex; flex-direction: column; border-right: 1px solid #333; }
+        #search { padding: 10px; background: #222; border: none; color: white; border-bottom: 1px solid #333; }
+        #stream-list { flex-grow: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; }
+        #stream-list li { padding: 10px; cursor: pointer; border-bottom: 1px solid #333; font-size: 14px; }
+        #stream-list li:hover { background: #333; }
+        #player-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; background: #000; }
+        video { width: 100%; max-height: 100%; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <input type="text" id="search" placeholder="Search channels..." oninput="filterStreams()">
+    <ul id="stream-list">Loading streams...</ul>
+</div>
+
+<div id="player-container">
+    <video id="video" controls></video>
+</div>
+
+<script>
+    const API_URL = 'https://corsproxy.io/?https://iptv-org.github.io/api/streams.json';
+    const video = document.getElementById('video');
+    const listElement = document.getElementById('stream-list');
+    let allStreams = [];
+
+    // 1. Fetch data from the API
+    fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+            allStreams = data;
+            renderList(allStreams);
+        })
+        .catch(err => listElement.innerHTML = "Error loading streams.");
+
+    // 2. Render the list of channels
+    function renderList(streams) {
+        listElement.innerHTML = streams.map((s, index) => 
+            `<li onclick="playStream('${s.url}')">${s.title || 'Unknown Channel'} (${s.quality || 'N/A'})</li>`
+        ).join('');
+    }
+
+    // 3. Play selected stream using HLS.js
+    function playStream(url) {
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Support for Safari/iOS which play HLS natively
+            video.src = url;
+            video.addEventListener('loadedmetadata', () => video.play());
+        }
+    }
+
+    // 4. Search Filter
+    function filterStreams() {
+        const term = document.getElementById('search').value.toLowerCase();
+        const filtered = allStreams.filter(s => s.title.toLowerCase().includes(term));
+        renderList(filtered);
+    }
+</script>
+
+</body>
+</html>
